@@ -1,20 +1,18 @@
 .model tiny
 locals @@
-;------------------------------------------------
+;-------------------------------------------------
 .data
-number db 5         ;MAX NUMBER OF CHARACTERS (4).
-       db ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
-       db 5 dup (?) ;CHARACTERS ENTERED BY USER. 
+txt_clr  db 4eh
 
-hex    db "0123456789abcdef"
-table_clr = 07eh
-blue_clr  = 07bh
+styles db 10 dup (?) 
+       db 0c9h, 0cbh, 0bbh, 0cch, 0b0h, 0b9h, 0c8h, 0cah, 0bch, 7eh
+       db 9 dup (03h), 0a4h 
 
-styles db 0c9h, 0cbh, 0bbh, 0cch, 0b0h, 0b9h, 0c8h, 0cah, 0bch
-
-wide   dw 0
-height dw 0
-;------------------------------------------------
+wide      dw 0
+height    dw 0
+table_clr db 0
+style     db 0
+;-------------------------------------------------
 .code          
 org 100h
 
@@ -22,42 +20,86 @@ start:      jmp main
 ;-------------------------------------------------
 ; ENTRY:    NONE 
 ;
-; EXIT:     DI coordinate
+; EXIT:     DI table start
+;           wide 
+;           height
+;           style 
+;           
+; EXPECT:              
 ;
-; DESTROYS: NONE
+; DESTROYS: AX, BX, BP, DX 
 ;-------------------------------------------------
 table_params proc
              
             mov cx, ds:[80h]
             mov ch, 0
-            sub cl, 1
+            sub cl, 1 ; fisrt symb is space
   
             xor bx, bx
             
-            mov bl, 1
+            mov bl, 1 ; lines counter
+            mov si, 82h ; cmd line args start
+            
+            lodsb 
+            dec si
+            cmp al, '0' ; if custom table style
+            jne styleset
+            
+            add si, 2 
             mov bp, 0
-            push bp
+readstyle:
+            lodsb ; read customs style symbols
+             
+            mov [styles - bp], al
+            inc bp 
+            cmp bp, 9
+            jne readstyle 
+            
+            add si, 1 ; read custom style color
+            call readhex
+            mov [styles + 9], dl 
 
-            mov si, 82h
+            sub cl, 15
+            mov bx, 1
+            jmp newisset            
 
+
+styleset:
+           lodsb 
+           sub al, 30h
+           mov style, al ; set chosen style
+           add si, 1
+           sub cl, 2
+
+newisset:
+           mov bp, 0
+           push bp
+
+ 
 lines:
             lodsb
 
-            cmp al, "~" 
-            jne @@next
+            cmp al, "~" ; new line sign
+            jne @@next1
             inc bl
 
             pop dx
-            cmp bp, dx
+            cmp bp, dx ; for finding the longest line
             jle old_bp
 
             push bp
             mov bp, -1
-            jmp @@next
+            jmp @@next1
 old_bp:
             push dx 
             mov bp, -1
-@@next:
+@@next1:
+            cmp al, '[' ; skip new txt clr
+            jne @@next2
+            add si, 5
+            sub cx, 5
+            jmp @@new_line
+@@next2:
             inc bp
 @@new_line:
             loop lines
@@ -71,7 +113,7 @@ old_bp:
             mov bp, dx
 
 newwide:
-            add bp, 2
+            add bp, 2 ; set wide 
             mov wide, bp
 
             mov ax, 80
@@ -93,9 +135,9 @@ newwide:
             mov dl, 80
             mul dl 
 
-            add di, ax
+            add di, ax ; table start here 
 
-            mov ax, di 
+            mov ax, di  ; if di is in second part move it in first
             mov dl, 160
             div dl
             
@@ -110,28 +152,78 @@ newwide:
 @@done:
             ret 
             endp
+;-------------------------------------------------
+; ENTRY:    SI - begin of number  
+;
+; EXIT:     DL - the read number 
+;
+; EXPECT:    
+;
+; DESTROYS: AX, BX 
+;-------------------------------------------------
+readhex     proc 
+            
+            mov ah, 0
+            mov bl, 16 
+            mov dx, 0
 
+@@cycle: 
+            lodsb 
+            cmp al, 20h
+            je @@done 
+            
+            cmp al, 61h
+            jge letter
+            sub al, 30h 
+            jmp @@next
+
+letter: 
+            sub al, 57h
+@@next:
+            add al, dl
+            cmp byte ptr ds:[si], 20h ; if next symbol is space
+            je @@last
+            mul bl
+@@last:
+            mov dl, al 
+            
+            jmp @@cycle 
+
+@@done:
+            
+            ret 
+            endp
 ;-------------------------------------------------
 ; ENTRY:    NONE 
 ;
-; EXIT:     NONE 
+; EXIT:     DI table's start 
 ;
 ; EXPECT:   ES b800h 
 ;
-; DESTROYS: CX
+; DESTROYS: AX, BX 
 ;-------------------------------------------------
 printTable  proc
             
             call table_params
-            push di 
-            mov ah, table_clr
-            push di 
+            push di ; first point addr
+
+            mov al, style ; set style
+            mov ah, 10
+            mul ah 
+            mov bx, offset styles 
+            mov ah, 0
+            add bx, ax
             
-            mov al, [styles + 2]
+
+
+            mov ah, [bx + 9] ; set table clr
+            push di ; save begin of the line
+             
+            mov al, [bx + 2] ; right upper corner
             push ax
-            mov al, [styles + 1]
+            mov al, [bx + 1] ; middle upper elem
             push ax
-            mov al, [styles]
+            mov al, [bx]     ; left upper corner
             push ax
             push wide
             
@@ -141,15 +233,15 @@ printTable  proc
             sub dx, 2
 
             pop di 
-            add di, 160d
+            add di, 160d ; next line
             push di 
 
 @@cycle:
-            mov al, [styles + 5]
+            mov al, [bx + 5] ; right middle elem
             push ax
-            mov al, [styles + 4]
+            mov al, [bx + 4] ; middle middle elem
             push ax
-            mov al, [styles + 3]
+            mov al, [bx + 3] ; left middle elem
             push ax
             push wide
 
@@ -164,11 +256,11 @@ printTable  proc
             jne @@cycle
 
             pop di 
-            mov al, [styles + 8]
+            mov al, [bx + 8] ; right lower corner
             push ax
-            mov al, [styles + 7]
+            mov al, [bx + 7] ; middle lower corner
             push ax
-            mov al, [styles + 6]
+            mov al, [bx + 6] ; left lower corner
             push ax
             push wide
 
@@ -178,41 +270,71 @@ printTable  proc
             pop di 
             ret 
             endp
-
+;-------------------------------------------------
+; ENTRY:    in stk: wide
+;                   left corner 
+;                   middle elem 
+;                   right corner 
+;           DI:     videoseg addr
+;
+; EXIT:     
+;
+; EXPECT:   
+;
+; DESTROY:  AX
 ;------------------------------------------------
  printLine  proc
             
-            pop bp 
-            pop cx
+            pop bp ; ret addr
+            pop cx ; wide
             
             sub cx, 2
-            pop ax
+            pop ax ; lft_crn
             stosw
-            pop ax
+            pop ax ; middle elem
 @@line:
             stosw
             loop @@line
 
-            pop ax
+            pop ax ; right crn
             stosw
             
             push bp
             ret 
             endp
 ;-------------------------------------------------
+; ENTRY:    NONE
+;
+; EXIT:     DI last line coord
+;
+; EXPECT:   SI 82h
+;
+; DESTROY:  AX
+;------------------------------------------------
 printText   proc 
             
-            mov cx, ds:[80h]
+            mov cx, ds:[80h] ; count of char
             mov ch, 0
             sub cl, 1
 
             push di
-            mov ah, blue_clr 
+            mov ah, txt_clr ; base color
+
+            lodsb
+            cmp al, '0'    ; if custom type
+            je @@custom
+            add si, 1
+            sub cl, 2
+            jmp @@lines
+
+@@custom:
+           add si, 14
+           sub cl, 15
 
 @@lines:
             lodsb
 
-            cmp al, "~" 
+            cmp al, "~"  ; if new line
             jne @@next
             pop di 
             add di, 160
@@ -220,6 +342,17 @@ printText   proc
             jmp @@done
 
 @@next:
+           cmp al, '[' ; if new txt clr 
+           jne @@next1
+
+           add si, 1 
+           call readhex ; read clr
+           add si, 1
+           mov ah, dl
+           sub cl, 5
+           jmp @@done
+
+@@next1:
            stosw 
 @@done:
            loop @@lines
