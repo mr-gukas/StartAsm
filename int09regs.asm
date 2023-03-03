@@ -52,7 +52,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print bx
         pop di  
         add di, 160d
 
@@ -62,7 +62,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print cx
         pop di  
         add di, 160d
         
@@ -72,7 +72,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print dx
         pop di  
         add di, 160d
 
@@ -83,7 +83,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print di
         pop di  
         add di, 160d
 
@@ -94,7 +94,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print si
         pop di  
         add di, 160d
         
@@ -105,7 +105,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print bp
         pop di  
         add di, 160d
         
@@ -116,7 +116,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print ds
         pop di  
         add di, 160d
          
@@ -127,7 +127,7 @@ _showreg    proc
         pop  bx       
         push di 
         add di, 6
-            call print2hex  ; print ax
+            call print2hex  ; print di
         pop di  
 
         push bp
@@ -315,6 +315,11 @@ printTable  proc
 new09   proc                             ; процедура обработчика прерываний от таймера
         cli
         pushf                            ; создание в стеке структуры для IRET
+        push ax
+        in al, 60h
+        cmp al, 29h
+        jne @@callold
+        pop ax
 ;----------------------------
         push es
         push ds 
@@ -329,11 +334,6 @@ new09   proc                             ; процедура обработчи
         push    cs
         pop     ds
         
-        push ax
-        in al, 60h
-        cmp al, 29h 
-        jne @@recovery 
-        pop ax 
         push es
         push ds 
         push bp 
@@ -349,18 +349,17 @@ new09   proc                             ; процедура обработчи
         mov di, 160d + 71d*2             ; настройка DI на начало таблицы 
         call printTable
         call _showreg 
-        push ax 
 
         in al, 61h
-        and al, 01111111b
+        and al, 80h 
         out 61h, al
         or al, 80h
         out 61h, al
         mov al, 20h
         out 20h, al
+
 @@recovery:
 ;----------------------------
-        pop     ax
         pop     ax 
         pop     bx                       ; восстановление модифицируемых регистров
         pop     cx
@@ -370,8 +369,13 @@ new09   proc                             ; процедура обработчи
         pop     bp
         pop     ds
         pop     es
+        popf
 ;----------------------------
+        jmp @@done
+@@callold:
+        pop ax
         call    cs:old                   ; вызов старого обработчика прерываний
+@@done:
         sti
         iret                             ; возврат из обработчика
 new09   endp                             ; конец процедуры обработчика
