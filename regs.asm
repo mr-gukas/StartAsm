@@ -6,20 +6,34 @@ locals @@
 org 100h
 
 start:  jmp     load                     ; переход на нерезидентную часть
-        old     dd  0                    ; адрес старого обработчика 
+        old09     dd  0                    ; адрес старого обработчика 
+        old08     dd  0
+        hotkey    db 0
 
-txtclr db 0ah
-hex    db "0123456789abcdef"
+        txtclr db 0ah
+        hex    db "0123456789abcdef"
 
-_ax     db "ax=", 0
-_bx     db "bx=", 0
-_cx     db "cx=", 0
-_dx     db "dx=", 0
-_di     db "di=", 0 
-_si     db "si=", 0
-_bp     db "bp=", 0
-_ds     db "ds=", 0
-_es     db "es=", 0
+        _ax     db "ax=", 0
+        _bx     db "bx=", 0
+        _cx     db "cx=", 0
+        _dx     db "dx=", 0
+        _di     db "di=", 0 
+        _si     db "si=", 0
+        _bp     db "bp=", 0
+        _ds     db "ds=", 0
+        _es     db "es=", 0
+;------------------------------------------------
+make08  proc 
+        mov     ax,  3508h               ; получение адреса старого обработчика
+        int     21h                      ; прерываний от клавиатуры
+        mov     word ptr old08,  bx        ; сохранение смещения обработчика
+        mov     word ptr old08 + 2,  es    ; сохранение сегмента обработчика
+        mov     ax,  2508h               ; установка адреса нашего обработчика
+        mov     dx,  offset new08        ; указание смещения нашего обработчика
+        int     21h                      ; вызов DOS
+
+        ret 
+        endp 
 ;------------------------------------------------
 ; ENTRY:    DI coordinate
 ;           SI string pointer    
@@ -213,7 +227,6 @@ print2hex   proc
 
             ret
             endp
-
 ;-------------------------------------------------
 ; ENTRY:    in stk: wide
 ;                   left corner 
@@ -312,14 +325,9 @@ printTable  proc
             endp
 
 ;------------------------------------------------
-new09   proc                             ; процедура обработчика прерываний от таймера
+new08   proc                             ; процедура обработчика прерываний от таймера
         cli
         pushf                            ; создание в стеке структуры для IRET
-        push ax
-        in al, 60h
-        cmp al, 29h
-        jne @@callold
-        pop ax
 ;----------------------------
         push es
         push ds 
@@ -350,14 +358,6 @@ new09   proc                             ; процедура обработчи
         call printTable
         call _showreg 
 
-        in al, 61h
-        and al, 80h 
-        out 61h, al
-        or al, 80h
-        out 61h, al
-        mov al, 20h
-        out 20h, al
-
 @@recovery:
 ;----------------------------
         pop     ax 
@@ -369,12 +369,52 @@ new09   proc                             ; процедура обработчи
         pop     bp
         pop     ds
         pop     es
+;----------------------------
+        sti
+        call cs:old08
+        iret                             ; возврат из обработчика
+new08   endp                             ; конец процедуры обработчика
+
+
+;------------------------------------------------
+new09   proc                             ; процедура обработчика прерываний от таймера
+        cli
+        pushf                            ; создание в стеке структуры для IRET
+        push ax
+        in al, 60h
+        cmp al, 29h
+        jne @@callold
+        pop ax
+        cmp cs:[hotkey], 1
+        je @@return
+;----------------------------
+        push es ds ax
+;----------------------------
+        push    cs
+        pop     ds
+        
+        call make08
+        
+        mov cs:[hotkey], 1
+
+        in al, 61h
+        and al, 80h 
+        out 61h, al
+        or al, 80h
+        out 61h, al
+        mov al, 20h
+        out 20h, al
+
+@@recovery:
+;----------------------------
+        pop ax ds es
         popf
 ;----------------------------
         jmp @@done
 @@callold:
         pop ax
-        call    cs:old                   ; вызов старого обработчика прерываний
+@@return:
+        call    cs:old09                   ; вызов старого обработчика прерываний
 @@done:
         sti
         iret                             ; возврат из обработчика
@@ -385,11 +425,12 @@ EOP:                               ; метка для определения р
 
 load:   mov     ax,  3509h               ; получение адреса старого обработчика
         int     21h                      ; прерываний от клавиатуры
-        mov     word ptr old,  bx        ; сохранение смещения обработчика
-        mov     word ptr old + 2,  es    ; сохранение сегмента обработчика
+        mov     word ptr old09,  bx        ; сохранение смещения обработчика
+        mov     word ptr old09 + 2,  es    ; сохранение сегмента обработчика
         mov     ax,  2509h               ; установка адреса нашего обработчика
         mov     dx,  offset new09        ; указание смещения нашего обработчика
         int     21h                      ; вызов DOS
+
         mov     ax,  3100h               ; функция DOS завершения резидентной программы
         mov     dx, (EOP - start + 10Fh) / 16 ; определение размера резидентной
                                                     ; части программы в параграфах
