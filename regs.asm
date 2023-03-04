@@ -9,19 +9,20 @@ start:  jmp     load                     ; переход на нерезиде�
         old09     dd  0                    ; адрес старого обработчика 
         old08     dd  0
         hotkey    db 0
-
+        
+        regsval dw 10 dup (?) 
         txtclr db 0ah
         hex    db "0123456789abcdef"
 
-        _ax     db "ax=", 0
-        _bx     db "bx=", 0
-        _cx     db "cx=", 0
-        _dx     db "dx=", 0
-        _di     db "di=", 0 
-        _si     db "si=", 0
-        _bp     db "bp=", 0
-        _ds     db "ds=", 0
-        _es     db "es=", 0
+        _regtxt db "ax=", 0
+                db "bx=", 0
+                db "cx=", 0
+                db "dx=", 0
+                db "di=", 0 
+                db "si=", 0
+                db "bp=", 0
+                db "ds=", 0
+                db "es=", 0
 ;------------------------------------------------
 make08  proc 
         mov     ax,  3508h               ; получение адреса старого обработчика
@@ -45,106 +46,32 @@ make08  proc
 ;
 ; DESTROYS: AX, SI 
 ;------------------------------------------------
-_showreg    proc
-        pop bp
+;------------------------------------------------
+_regsdump    proc
 
         mov di, 160d + 71d*2 + 162d             ; настройка DI на начало текста 
+        
+        mov bp, 0
+@@loop:
+        shl bp, 2
+        mov si, offset _regtxt
+        add si, bp 
 
-        mov si, offset _ax
         mov ah, txtclr
             call _printstr
-        pop  bx       
-        push di 
+        push di
         add di, 6
-            call print2hex  ; print ax
-        pop di  
+        shr bp, 1
+        mov bx, word ptr cs:[regsval + bp]
+        shr bp, 1
+        call print2hex 
+        pop di
         add di, 160d
+       
+        inc bp
+        cmp bp, 9
+        jne @@loop
 
-        mov si, offset _bx
-        mov ah, txtclr
-            call _printstr
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print bx
-        pop di  
-        add di, 160d
-
-        mov si, offset _cx
-        mov ah, txtclr
-            call _printstr
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print cx
-        pop di  
-        add di, 160d
-        
-        mov si, offset _dx
-        mov ah, txtclr
-            call _printstr
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print dx
-        pop di  
-        add di, 160d
-
-        mov si, offset _di
-        mov ah, txtclr
-            call _printstr
-        
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print di
-        pop di  
-        add di, 160d
-
-        mov si, offset _si
-        mov ah, txtclr
-            call _printstr
-        
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print si
-        pop di  
-        add di, 160d
-        
-        mov si, offset _bp
-        mov ah, txtclr
-            call _printstr
-        
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print bp
-        pop di  
-        add di, 160d
-        
-        mov si, offset _ds
-        mov ah, txtclr
-            call _printstr
-        
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print ds
-        pop di  
-        add di, 160d
-         
-        mov si, offset _es
-        mov ah, txtclr
-            call _printstr
-        
-        pop  bx       
-        push di 
-        add di, 6
-            call print2hex  ; print di
-        pop di  
-
-        push bp
         ret 
         endp
 ;------------------------------------------------
@@ -185,6 +112,7 @@ _printstr   proc
 print2hex   proc
             mov ax, 0
             push bx
+            push dx
 
 @@cycle:	
             mov al, 0
@@ -222,7 +150,8 @@ print2hex   proc
             xlat
             stosw
             loop @@output
-
+            
+            pop dx
             pop bx
 
             ret
@@ -329,46 +258,36 @@ new08   proc                             ; процедура обработчи
         cli
         pushf                            ; создание в стеке структуры для IRET
 ;----------------------------
-        push es
-        push ds 
-        push bp 
-        push si
-        push di 
-        push dx
-        push cx
-        push bx 
-        push ax
-;----------------------------
+;start doing shit ok?
+        mov cs:[regsval + 14], ds 
         push    cs
         pop     ds
-        
-        push es
-        push ds 
-        push bp 
-        push si
-        push di 
-        push dx
-        push cx
-        push bx 
-        push ax
+        mov [regsval], ax
+        mov [regsval + 2], bx
+        mov [regsval + 4], cx
+        mov [regsval + 6], dx
+        mov [regsval + 8], di
+        mov [regsval + 10], si
+        mov [regsval + 12], bp
+        mov [regsval + 16], es 
 
         mov     bx,  0B800h              ; настройка AX на сегмент видеопамяти
         mov     es,  bx                  ; запись в ES значения сегмента видеопамяти
         mov di, 160d + 71d*2             ; настройка DI на начало таблицы 
         call printTable
-        call _showreg 
+        call _regsdump 
 
 @@recovery:
 ;----------------------------
-        pop     ax 
-        pop     bx                       ; восстановление модифицируемых регистров
-        pop     cx
-        pop     dx
-        pop     di
-        pop     si
-        pop     bp
-        pop     ds
-        pop     es
+        mov ax, [regsval]
+        mov bx, [regsval + 2]
+        mov cx, [regsval + 4]
+        mov dx, [regsval + 6]
+        mov di, [regsval + 8]
+        mov si, [regsval + 10]
+        mov bp, [regsval + 12]
+        mov es, [regsval + 16]
+        mov ds, [regsval + 14]
 ;----------------------------
         sti
         call cs:old08
