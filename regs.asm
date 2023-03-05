@@ -6,6 +6,9 @@ locals @@
 org 100h
 
 start:  jmp     main                ; jump to the non-resident part      
+;------------------------------------------------
+; resident data 
+;------------------------------------------------
         old09      dd  0            ; address of the old 09 handler
         old08      dd  0            ; address of the old 08 handler 
         hotkey_on  db  0            ; frame_on
@@ -35,11 +38,12 @@ start:  jmp     main                ; jump to the non-resident part
                 db "ds=", 0
                 db "es=", 0
 ;------------------------------------------------
+; unpin regs frame  
+;------------------------------------------------
 unlink08  proc 
         mov     ax,  2508h               
         mov     dx,  offset ret2old08    ; come back to old 08 
         int     21h                       
-
         ret 
         endp 
 ;------------------------------------------------
@@ -53,7 +57,7 @@ ret2old08 proc
         push    cs
         pop     ds
 ;----------------------------
-        mov [regsval], ax
+        mov [regsval    ], ax
         mov [regsval + 2], bx
         mov [regsval + 4], cx
         mov [regsval + 6], dx
@@ -64,6 +68,7 @@ ret2old08 proc
 ;----------------------------
         call _restorevid
         mov cs:[hotkey_on], 0
+
 @@recovery:
 ;----------------------------
         mov ax, [regsval]
@@ -77,8 +82,8 @@ ret2old08 proc
         mov ds, [regsval + 14]
 ;----------------------------
 @@done:
-        sti
         call cs:old08
+        sti
         iret                            
         endp                             
 ;------------------------------------------------
@@ -90,9 +95,9 @@ link08  proc
         ret 
         endp 
 ;------------------------------------------------
-; copy bytes from videoseg to special "save" buffer
+; copy bytes from videoseg to buffer
 ;------------------------------------------------
-; ENTRY:
+; ENTRY: si buff addr
 ; EXIT:
 ; EXPECT: es b800h
 ; DESTROYS: 
@@ -124,12 +129,18 @@ _savebuf proc
         ret
         endp
 ;------------------------------------------------
+; compares the video segment with the data from the frame buffer
+;------------------------------------------------
+; ENTRY: 
+; EXIT:
+; EXPECT: es b800h
+; DESTROYS: 
+;------------------------------------------------
 _checkbuf proc
         mov di, st_frame
         mov si, offset drawbuf 
 
         mov cx, height 
-        
 @@rows:
         push cx
         mov cx, wid 
@@ -159,6 +170,13 @@ _checkbuf proc
         ret  
         endp
 ;------------------------------------------------
+; restores the video segment using the data from the buffer
+;------------------------------------------------
+; ENTRY: 
+; EXIT:
+; EXPECT: 
+; DESTROYS: 
+;------------------------------------------------
 _restorevid proc 
         mov ax, 0b800h 
         mov es, ax 
@@ -182,8 +200,6 @@ _restorevid proc
 
         ret
         endp
-;------------------------------------------------
-;------------------------------------------------
 ;------------------------------------------------
 ; Show regs value in the frame
 ;------------------------------------------------
@@ -410,6 +426,8 @@ _printframe  proc
 new08   proc                             ; процедура обработчика прерываний от таймера
         cli
         pushf                            ; создание в стеке структуры для IRET
+        cmp cs:[hotkey_on], 1
+        jne @@done
 ;----------------------------
         mov cs:[regsval + 14], ds 
         push    cs
@@ -447,6 +465,7 @@ new08   proc                             ; процедура обработчи
         mov es, [regsval + 16]
         mov ds, [regsval + 14]
 ;----------------------------
+@@done:
         sti
         call cs:old08
         iret                            
@@ -534,6 +553,9 @@ main:   mov     ax,  3509h               ; get the address of the old handler ke
         mov     dx,  offset new09        ;  set the new handler's offset
         int     21h                      
 
+        mov     ax,  2508h               ;  set the address of new handler
+        mov     dx,  offset new08        ;  set the new handler's offset
+        int     21h                      
 
         mov     ax,  3100h               
         mov     dx, (EOP - start + 10Fh) / 16 ; determining the size of the resident program
