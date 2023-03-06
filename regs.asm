@@ -2,6 +2,7 @@
 .model tiny
 .code
 
+
 locals @@ 
 org 100h
 
@@ -16,9 +17,6 @@ start:  jmp     main                ; jump to the non-resident part
 
         regsval dw 10 dup (?)       ; save source regs value
         
-        savebuf  dw 99 dup (0) 
-        drawbuf  dw 99 dup (0) 
-
         st_row   equ 1d
         st_col   equ 71d
         wid      equ 9d
@@ -27,6 +25,9 @@ start:  jmp     main                ; jump to the non-resident part
 
         txtclr db 0ah               ; table's text color
         hex    db "0123456789abcdef"; hex symbols table
+
+        savebuf  dw 99 dup (0) 
+        drawbuf  dw 99 dup (0) 
 
         _regtxt db "ax=", 0         ; regs frame strings
                 db "bx=", 0
