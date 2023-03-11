@@ -1,0 +1,3 @@
+/home/gukas/myDos/DOSBox/gthb/build/CMakeFiles/hack.dir
+/home/gukas/myDos/DOSBox/gthb/build/CMakeFiles/edit_cache.dir
+/home/gukas/myDos/DOSBox/gthb/build/CMakeFiles/rebuild_cache.dir
