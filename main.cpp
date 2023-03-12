@@ -9,8 +9,8 @@
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "SFML window");
-
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Crack friend - Lose yourself");
+    
     sf::Texture texture;
     if (!texture.loadFromFile("src/background.jpg")) {
         return 1; 
@@ -55,12 +55,13 @@ int main()
     finish.setOutlineThickness(2.f);
     finish.setOutlineColor(sf::Color::Black);
     finish.setPosition(600.f, 300.f);
-
+     
     sf::Text finishText("You got what you wanted.\nBut at what cost...", font, 30);
     finishText.setFillColor(sf::Color::Black);
     finishText.setPosition(finish.getPosition().x + 10.f, finish.getPosition().y + 10.f);
 
-    sf::View view(sf::FloatRect(0.f, 0.f, static_cast<float>(texture.getSize().x), static_cast<float>(texture.getSize().y)));
+    sf::View view(sf::FloatRect(0.f, 0.f, static_cast<float>(texture.getSize().x), 
+                                          static_cast<float>(texture.getSize().y)));
     view.setViewport(sf::FloatRect(0.f, 0.f, 1.f, 1.f));
     window.setView(view);         
                                  
@@ -84,9 +85,11 @@ int main()
                 window.close();
             }
 
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+            if (event.type == sf::Event::MouseButtonPressed && 
+                event.mouseButton.button == sf::Mouse::Left)
             {
                 sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+
                 if (button.getGlobalBounds().contains(mousePos) && !buttonClicked)
                 {
                     buttonClicked  = true;
@@ -114,15 +117,18 @@ int main()
         
         if (buttonClicked)
         {
-            float width = progressBar.getSize().x;
+            float width    = progressBar.getSize().x;
             float progress = 0.f;
+
             while (progress < 1.f)
             {
                 width += 10.f;
                 progress = width / (window.getSize().x - 200.f);
                             progressBar.setSize(sf::Vector2f(width, 10.f));
+
                 window.draw(progressBar);
                 window.display();
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
 
@@ -136,11 +142,13 @@ int main()
         window.draw(text);
         window.draw(button);
         window.draw(buttonText);
+
         if (programFinished)
         {
             window.draw(finish);
             window.draw(finishText);
         }
+
         window.display();
     }
 
