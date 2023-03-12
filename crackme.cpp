@@ -3,7 +3,7 @@
 
 int main()
 {
-    FILE* binary = fopen("../high.COM", "r+");
+    FILE* binary = fopen("../CRACKME.com", "r+");
     if (!binary)
     {
         fprintf(stderr, "NO FILE!\n");
@@ -11,7 +11,7 @@ int main()
     }
 
     char hack[] = {0, 0};
-    fseek(binary, 0x41, SEEK_SET);
+    fseek(binary, 0xcb, SEEK_SET);
     fwrite(hack, sizeof(char), 2, binary);
     fclose(binary); 
 
