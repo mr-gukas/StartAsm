@@ -1,157 +1,233 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
+#include <SFML/System/String.hpp>
 #include <string>
 #include <cstdlib>
 #include <thread>
 #include <chrono>
 
+struct crackme_t
+{
+    sf::RenderWindow    window;
+    sf::Texture         texture;
+    sf::Sprite          sprite;
+    sf::Font            font; 
+    sf::Text            beginText;
+    sf::RectangleShape  button;
+    sf::Text            buttonText;  
+    sf::RectangleShape  finish; 
+    sf::Text            finishText; 
+    sf::RectangleShape  progressBar;
+    sf::Music           music;
+    sf::View            view;
+};
+
+int setText(sf::Text &text, const sf::String &string, const sf::Font &font,
+            unsigned int size, int r_clr, int g_clr, int b_clr,
+            float x_pos, float y_pos);
+int typeWriteEff(std::string &message, sf::Text &text, sf::Clock &clock,
+                 unsigned int *charIndex, float *timePerChar);
+int setRectangle(sf::RectangleShape &rect, float size_x, float size_y, int r_clr, int g_clr, int b_clr,
+                 float thickness, float x_pos, float y_pos);
+int buttonPress(sf::Event &event, sf::RectangleShape &button, sf::RenderWindow &window,
+                bool *buttonClicked);
+int progBar(sf::RectangleShape &progressBar, sf::RenderWindow &window,
+            bool *buttonClicked, bool *programFinished);
+int setText(sf::Text &text, int r_clr, int g_clr, int b_clr,
+            float x_pos, float y_pos);
+
+
+
+int crackmeCtor(struct crackme_t *crack)
+{
+    if (crack == nullptr)
+        return 1;
+    
+    crack->window.create(sf::VideoMode(800, 600), "Crack friend - Lose yourself");
+
+    if (!crack->texture.loadFromFile("src/background.jpg"))
+        return 1;     
+    
+    crack->sprite.setTexture(crack->texture);
+    
+    if (!crack->font.loadFromFile("src/font.ttf"))
+        return 1; 
+    
+     
+
+    setText(crack->beginText, "", crack->font, 30, 0x00, 0xfa, 0x9a, 10.f, 10.f);
+   
+    setRectangle(crack->button, 800.f, 100.f, 0x00, 0xfa, 0x9a, 2.f, 600.f, 150.f);
+
+    setRectangle(crack->progressBar, 0.f, 50.f, 0x00, 0xfa, 0x9a, 2.f, 600.f, 300.f);
+
+    setText(crack->buttonText, "Just click here\n(to ruin a friendship...)", crack->font, 30, 
+                        0x00, 0x00, 0x00, crack->button.getPosition().x + 10.f, crack->button.getPosition().y + 10.f);
+
+    setRectangle(crack->finish, 800.f, 100.f, 0x00, 0xfa, 0x9a, 2.f, 600.f, 300.f);
+     
+    setText(crack->finishText, "You got what you wanted.\nBut at what cost...", crack->font, 30, 0x00, 0x00, 0x00, 
+            crack->finish.getPosition().x + 10.f, crack->finish.getPosition().y + 10.f);
+
+    crack->view.reset(sf::FloatRect(0.f, 0.f, static_cast<float>(crack->texture.getSize().x), 
+                                          static_cast<float>(crack->texture.getSize().y)));
+
+    crack->view.setViewport(sf::FloatRect(0.f, 0.f, 1.f, 1.f));
+    crack->window.setView(crack->view);         
+
+    if (!crack->music.openFromFile("src/music.ogg")) 
+        return 1; 
+
+    return 0;
+}
+
+int setText(sf::Text &text, const sf::String &string, const sf::Font &font,
+            unsigned int size, int r_clr, int g_clr, int b_clr,
+            float x_pos, float y_pos)
+{
+    text.setString(string);
+    text.setFont(font);
+    text.setCharacterSize(size);
+    text.setFillColor(sf::Color(r_clr, g_clr, b_clr));
+    text.setPosition(x_pos, y_pos);
+
+    return 0;
+}
+
+
+int progBar(sf::RectangleShape &progressBar, sf::RenderWindow &window,
+            bool *buttonClicked, bool *programFinished)
+{
+    float width    = progressBar.getSize().x;
+    float progress = 0.f;
+
+    while (progress < 1.f)
+    {
+        width += 10.f;
+        progress = width / (window.getSize().x - 200.f);
+                    progressBar.setSize(sf::Vector2f(width, 10.f));
+
+        window.draw(progressBar);
+        window.display();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    *buttonClicked   = false;
+    *programFinished = true;
+    progressBar.setSize(sf::Vector2f(0.f, 10.f));
+
+    return 0;
+}
+
+
+int typeWriteEff(std::string &message, sf::Text &text, sf::Clock &clock,
+                 unsigned int *charIndex, float *timePerChar)
+{
+    float deltaTime = clock.restart().asSeconds();
+
+    if (*charIndex < message.size())
+    {
+        *timePerChar -= deltaTime;
+        if (*timePerChar <= 0)
+        {
+            text.setString(text.getString() + message[*charIndex]);
+            (*charIndex)++;
+
+            *timePerChar = 0.1f;
+        }
+    }
+
+    return 0;
+}
+
+int setRectangle(sf::RectangleShape &rect, float size_x, float size_y, int r_clr, int g_clr, int b_clr,
+                 float thickness, float x_pos, float y_pos)
+{
+    rect.setSize(sf::Vector2f(size_x, size_y));
+    rect.setFillColor(sf::Color(r_clr, g_clr, b_clr));
+    rect.setOutlineThickness(thickness);
+    rect.setOutlineColor(sf::Color::Black);
+    rect.setPosition(x_pos, y_pos);
+
+    return 0;
+}
+
+int buttonPress(sf::Event &event, sf::RectangleShape &button, sf::RenderWindow &window,
+                bool *buttonClicked)
+{
+    if (event.type == sf::Event::MouseButtonPressed && 
+        event.mouseButton.button == sf::Mouse::Left)
+    {
+        sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+
+        if (button.getGlobalBounds().contains(mousePos) && !(*buttonClicked))
+        {
+            *buttonClicked  = true;
+            std::thread programThread([](){
+                std::system("../crackme");
+            });
+            programThread.detach();
+        }
+    }
+
+    return 0;
+}
+
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Crack friend - Lose yourself");
-    
-    sf::Texture texture;
-    if (!texture.loadFromFile("src/background.jpg")) {
-        return 1; 
-    }
+    crackme_t crack = {};
 
-    sf::Sprite sprite(texture);
+    crackmeCtor(&crack);
 
-    sf::Font font;
-    if (!font.loadFromFile("src/font.ttf")) {
-        return 1; 
-    }
-     
+    crack.music.setLoop(true); 
+    crack.music.play(); 
+
     std::string message = "Hello! Let's break someone's life...\n\nAlthough it won't make your life any better...";
-    sf::Text text("", font, 30);
-    text.setPosition(10.f, 10.f);
-    text.setFillColor(sf::Color(0x00, 0xfa, 0x9a));
-    text.setOutlineColor(sf::Color(0x00, 0xfa, 0x9a));
-    text.setOutlineThickness(1.f);
-    
+
     unsigned int characterIndex = 0;
     sf::Clock clock;
     float timePerCharacter = 0.1f;
 
-    sf::RectangleShape button(sf::Vector2f(800.f, 100.f));
-    button.setFillColor(sf::Color(0x00, 0xfa, 0x9a));
-    button.setOutlineThickness(2.f);
-    button.setOutlineColor(sf::Color::Black);
-    button.setPosition(600.f, 150.f);
-
-    sf::RectangleShape progressBar(sf::Vector2f(0.f, 50.f));
-    progressBar.setFillColor(sf::Color(0x00, 0xfa, 0x9a));
-    progressBar.setOutlineThickness(2.f);
-    progressBar.setOutlineColor(sf::Color::Black);  
-    progressBar.setPosition(600.f, 300.f);
-
-    sf::Text buttonText("Just click here\n(to ruin a friendship...)", font, 30);
-    buttonText.setFillColor(sf::Color::Black);
-    buttonText.setPosition(button.getPosition().x + 10.f, button.getPosition().y + 10.f);
-
-    sf::RectangleShape finish(sf::Vector2f(800.f, 100.f));
-    finish.setFillColor(sf::Color(0x00, 0xfa, 0x9a));
-    finish.setOutlineThickness(2.f);
-    finish.setOutlineColor(sf::Color::Black);
-    finish.setPosition(600.f, 300.f);
-     
-    sf::Text finishText("You got what you wanted.\nBut at what cost...", font, 30);
-    finishText.setFillColor(sf::Color::Black);
-    finishText.setPosition(finish.getPosition().x + 10.f, finish.getPosition().y + 10.f);
-
-    sf::View view(sf::FloatRect(0.f, 0.f, static_cast<float>(texture.getSize().x), 
-                                          static_cast<float>(texture.getSize().y)));
-    view.setViewport(sf::FloatRect(0.f, 0.f, 1.f, 1.f));
-    window.setView(view);         
-                                 
-    sf::Music music;
-    if (!music.openFromFile("src/music.ogg")) {
-        return 1; 
-    }
-    music.setLoop(true); 
-    music.play(); 
-    
     bool buttonClicked   = false;
     bool programFinished = false;
 
-    while (window.isOpen())
+    while (crack.window.isOpen())
     {
         sf::Event event;
-        while (window.pollEvent(event))
+
+        while (crack.window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-
-            if (event.type == sf::Event::MouseButtonPressed && 
-                event.mouseButton.button == sf::Mouse::Left)
-            {
-                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-
-                if (button.getGlobalBounds().contains(mousePos) && !buttonClicked)
-                {
-                    buttonClicked  = true;
-                    std::thread programThread([](){
-                        std::system("../crackme");
-                    });
-                    programThread.detach();
-                }
-            }
-        }
+                crack.window.close();
         
-        float deltaTime = clock.restart().asSeconds();
-
-        if (characterIndex < message.size())
-        {
-            timePerCharacter -= deltaTime;
-            if (timePerCharacter <= 0)
-            {
-                text.setString(text.getString() + message[characterIndex]);
-                characterIndex++;
-
-                timePerCharacter = 0.1f;
-            }
+            buttonPress(event, crack.button, crack.window, &buttonClicked);
         }
-        
+
+        typeWriteEff(message, crack.beginText, clock, &characterIndex, &timePerCharacter);
+
         if (buttonClicked)
-        {
-            float width    = progressBar.getSize().x;
-            float progress = 0.f;
+            progBar(crack.progressBar, crack.window, &buttonClicked, &programFinished);
 
-            while (progress < 1.f)
-            {
-                width += 10.f;
-                progress = width / (window.getSize().x - 200.f);
-                            progressBar.setSize(sf::Vector2f(width, 10.f));
-
-                window.draw(progressBar);
-                window.display();
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
-            buttonClicked   = false;
-            programFinished = true;
-            progressBar.setSize(sf::Vector2f(0.f, 10.f));
-        }
-
-        window.clear();
-        window.draw(sprite);
-        window.draw(text);
-        window.draw(button);
-        window.draw(buttonText);
+        crack.window.clear();
+        crack.window.draw(crack.sprite);
+        crack.window.draw(crack.beginText);
+        crack.window.draw(crack.button);
+        crack.window.draw(crack.buttonText);
 
         if (programFinished)
         {
-            window.draw(finish);
-            window.draw(finishText);
+            crack.window.draw(crack.finish);
+            crack.window.draw(crack.finishText);
         }
 
-        window.display();
+        crack.window.display();
     }
-
 
     return 0;
 }
