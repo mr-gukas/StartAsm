@@ -1,47 +1,4 @@
-#include <SFML/Graphics.hpp>
-#include <SFML/Audio.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/System/Clock.hpp>
-#include <SFML/System/String.hpp>
-#include <string>
-#include <cstdlib>
-#include <thread>
-#include <chrono>
-
-struct crackme_t
-{
-    sf::RenderWindow    window;
-    sf::Texture         texture;
-    sf::Sprite          sprite;
-    sf::Font            font; 
-    sf::Text            beginText;
-    sf::RectangleShape  button;
-    sf::Text            buttonText;  
-    sf::RectangleShape  finish; 
-    sf::Text            finishText; 
-    sf::RectangleShape  progressBar;
-    sf::Music           music;
-    sf::View            view;
-};
-
-int setText(sf::Text &text, const sf::String &string, const sf::Font &font,
-            unsigned int size, int r_clr, int g_clr, int b_clr,
-            float x_pos, float y_pos);
-int typeWriteEff(std::string &message, sf::Text &text, sf::Clock &clock,
-                 unsigned int *charIndex, float *timePerChar);
-int setRectangle(sf::RectangleShape &rect, float size_x, float size_y, int r_clr, int g_clr, int b_clr,
-                 float thickness, float x_pos, float y_pos);
-int buttonPress(sf::Event &event, sf::RectangleShape &button, sf::RenderWindow &window,
-                bool *buttonClicked);
-int progBar(sf::RectangleShape &progressBar, sf::RenderWindow &window,
-            bool *buttonClicked, bool *programFinished);
-int setText(sf::Text &text, int r_clr, int g_clr, int b_clr,
-            float x_pos, float y_pos);
-
-
+#include "crack.h"
 
 int crackmeCtor(struct crackme_t *crack)
 {
@@ -58,8 +15,6 @@ int crackmeCtor(struct crackme_t *crack)
     if (!crack->font.loadFromFile("src/font.ttf"))
         return 1; 
     
-     
-
     setText(crack->beginText, "", crack->font, 30, 0x00, 0xfa, 0x9a, 10.f, 10.f);
    
     setRectangle(crack->button, 800.f, 100.f, 0x00, 0xfa, 0x9a, 2.f, 600.f, 150.f);
@@ -98,7 +53,6 @@ int setText(sf::Text &text, const sf::String &string, const sf::Font &font,
 
     return 0;
 }
-
 
 int progBar(sf::RectangleShape &progressBar, sf::RenderWindow &window,
             bool *buttonClicked, bool *programFinished)

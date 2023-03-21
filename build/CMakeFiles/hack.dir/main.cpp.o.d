@@ -1,10 +1,11 @@
 CMakeFiles/hack.dir/main.cpp.o: /home/gukas/myDos/DOSBox/gthb/main.cpp \
- /usr/include/stdc-predef.h /usr/include/SFML/Graphics.hpp \
- /usr/include/SFML/Window.hpp /usr/include/SFML/System.hpp \
- /usr/include/SFML/Config.hpp /usr/include/SFML/System/Clock.hpp \
- /usr/include/SFML/System/Export.hpp /usr/include/SFML/System/Time.hpp \
- /usr/include/SFML/System/Err.hpp /usr/include/c++/12.2.1/ostream \
- /usr/include/c++/12.2.1/ios /usr/include/c++/12.2.1/iosfwd \
+ /usr/include/stdc-predef.h /home/gukas/myDos/DOSBox/gthb/crack.h \
+ /usr/include/SFML/Graphics.hpp /usr/include/SFML/Window.hpp \
+ /usr/include/SFML/System.hpp /usr/include/SFML/Config.hpp \
+ /usr/include/SFML/System/Clock.hpp /usr/include/SFML/System/Export.hpp \
+ /usr/include/SFML/System/Time.hpp /usr/include/SFML/System/Err.hpp \
+ /usr/include/c++/12.2.1/ostream /usr/include/c++/12.2.1/ios \
+ /usr/include/c++/12.2.1/iosfwd \
  /usr/include/c++/12.2.1/x86_64-pc-linux-gnu/bits/c++config.h \
  /usr/include/c++/12.2.1/x86_64-pc-linux-gnu/bits/os_defines.h \
  /usr/include/features.h /usr/include/features-time64.h \
