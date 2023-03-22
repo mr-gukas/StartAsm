@@ -1,1 +1,0 @@
-/usr/bin/c++ -rdynamic CMakeFiles/MySFMLProject.dir/main.cpp.o -o MySFMLProject  /usr/lib/libsfml-graphics.so.2.5.1 /usr/lib/libsfml-window.so.2.5.1 /usr/lib/libsfml-system.so.2.5.1 

@@ -7,12 +7,12 @@ int crackmeCtor(struct crackme_t *crack)
     
     crack->window.create(sf::VideoMode(800, 600), "Crack friend - Lose yourself");
 
-    if (!crack->texture.loadFromFile("src/background.jpg"))
+    if (!crack->texture.loadFromFile("../src/background.jpg"))
         return 1;     
     
     crack->sprite.setTexture(crack->texture);
     
-    if (!crack->font.loadFromFile("src/font.ttf"))
+    if (!crack->font.loadFromFile("../src/font.ttf"))
         return 1; 
     
     setText(crack->beginText, "", crack->font, 30, 0x00, 0xfa, 0x9a, 10.f, 10.f);
@@ -35,7 +35,7 @@ int crackmeCtor(struct crackme_t *crack)
     crack->view.setViewport(sf::FloatRect(0.f, 0.f, 1.f, 1.f));
     crack->window.setView(crack->view);         
 
-    if (!crack->music.openFromFile("src/music.ogg")) 
+    if (!crack->music.openFromFile("../src/music.ogg")) 
         return 1; 
 
     return 0;
